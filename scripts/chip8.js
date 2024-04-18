@@ -18,6 +18,8 @@ function init(){
     then = Date.now();
     startTime = then;
 
+    cpu.loadSpritesIntoMemory();
+    cpu.loadRom('BLITZ');
     loop = requestAnimationFrame(step);
 }
 
@@ -27,7 +29,7 @@ function step() {
     elasped = now - then;
 
     if (elapsed > fpsInterval) {
-
+        cpu.cycle();
     }
     loop = reuqestAnimationFrame(step);
 }
