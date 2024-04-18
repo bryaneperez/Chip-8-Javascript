@@ -122,88 +122,181 @@ class CPU(){
             switch (opcode & 0xF000) {
                 case 0x0000:
                     switch (opcode) {
-                        case 0x00E0:
+                        case 0x00E0: // clear the display
+                            this.renderer.clear();
                             break;
-                        case 0x00EE:
+                        case 0x00EE: //store last element on stack in pc
+                            this.pc = this.stack.pop();
                             break;
                     }
             
                     break;
-                case 0x1000:
+                case 0x1000: //set pc to value stored
+                    this.pc - (opcode & 0xFFF);
                     break;
-                case 0x2000:
+                case 0x2000: //call address
+                    this.stack.push(this.pc);
+                    this.pc = (opcode & 0xFFF);
                     break;
-                case 0x3000:
+                case 0x3000: // compare x to value, skip if the same
+                    if(this.v[x] === (opcode & 0xFF)){
+                        this.pc += 2;
+                    }
                     break;
-                case 0x4000:
+                case 0x4000: //compare x to value, skip if not the same
+                    if (this.v[x] !== (opcode & 0xFF)) {
+                        this.pc += 2;
+                    }
                     break;
-                case 0x5000:
+                case 0x5000: // skip if x and y are the same
+                    if(this.v[x] === this.v[y]) {
+                        this.pc += 2;
+                    }
                     break;
-                case 0x6000:
+                case 0x6000: // Set x to value
+                    this.v[x] = (opcode & 0xFF);
                     break;
-                case 0x7000:
+                case 0x7000: // add value to x
+                    this.v[x] += (opcode & 0xFF);
                     break;
                 case 0x8000:
                     switch (opcode & 0xF) {
-                        case 0x0:
+                        case 0x0: // set x to y
+                            this.v[x] = this.v[y];
                             break;
-                        case 0x1:
+                        case 0x1://x is equal to x or y
+                            this.v[x] |= this.v[y];
                             break;
-                        case 0x2:
+                        case 0x2://x is equal to x and y
+                            this.v[x] &= this.v[y];
                             break;
-                        case 0x3:
+                        case 0x3://x is equal to x XOR y
+                            this.v[x] ^= this.v[y];
                             break;
-                        case 0x4:
+                        case 0x4://add x and y, carry stored in Vf
+                            let sum = (this.v[x] + this.v[y])
+                            this.v[0xF] = 0;
+                            if (sum > 0xFF) {
+                                this.v[0xF] = 1;
+                            }
+                            this.v[x] = sum;
                             break;
-                        case 0x5:
+                        case 0x5://subtract x and y, borrow stored in Vf
+                            this.v[0xF] = 0;
+                            if (this.v[x] > this.v[y]){
+                                this.v[0xF] = 1;
+                            }
+                            this.v[x] -= this.v[y];
                             break;
-                        case 0x6:
+                        case 0x6://Shift right x
+                            this.v[0xF] = (this.v[x] & 0x1);
+                            this.v[x] >>= 1;
                             break;
-                        case 0x7:
+                        case 0x7://SUBN x and y
+                            this.v[0xF] = 0;
+                            if(this.v[y] > this.v[x]) {
+                                this.v[0xF] = 1;
+                            }
+                            this.v[x] = this.v[y] - this.v[x];
                             break;
-                        case 0xE:
+                        case 0xE: //Shift left x
+                            this.v[0xF] = (this.v[x] & 0x80);
+                            this.v[x] <<= 1;
                             break;
                     }
             
                     break;
-                case 0x9000:
+                case 0x9000:// skip next if x and y are not equal
+                    if(this.v[x] !== this.v[y]) {
+                        this.pc += 2;
+                    }
                     break;
-                case 0xA000:
+                case 0xA000: //set index to value.
+                    this.i = (opcode & 0xFFF);
                     break;
-                case 0xB000:
+                case 0xB000://set pc to value plus register 0
+                    this.pc = (opcode & 0xFFF) + this.v[0];
                     break;
-                case 0xC000:
+                case 0xC000: //Random value set to X
+                    let rand = Math.floor(Math.random() * 0xFF);
+                    this.v[x] = rand & (opcode & 0xFF);
                     break;
-                case 0xD000:
+                case 0xD000://Draw and Erase pixels
+                    let width = 8;
+                    let height = (opcode & 0xF);
+
+                    this.v[0xF] = 0;
+                    for (let row = 0; row < height; row++){
+                        let sprite = this.memory[this.i + row];
+
+                        for(let col = 0; col < width; col++){
+                            //sprite != 0 erase the pixel
+                            if ((sprite & 0x80) > 0){
+                                if (this.renderer.setPixel(this.v[x] + col, this.v[y] + row)){
+                                    this.v[0xF] = 1;
+                                }
+                            }
+                            //Shift sprite left by  1
+                            sprite <<= 1;
+                        }
+                    }
                     break;
                 case 0xE000:
                     switch (opcode & 0xFF) {
-                        case 0x9E:
+                        case 0x9E:// Skip next instruction if key stored in x is pressed
+                            if(this.keyboard.isKeyPressed(this.v[x])){
+                                this.pc += 2;
+                            }
                             break;
-                        case 0xA1:
+                        case 0xA1://skip next instruction if key stored in x is not pressed
+                            if(!this.keyboard.isKeyPressed(this.v[x])){
+                                this.pc += 2;
+                            }
                             break;
                     }
             
                     break;
                 case 0xF000:
                     switch (opcode & 0xFF) {
-                        case 0x07:
+                        case 0x07: //x set equal to delayTimer
+                            this.v[x] = this.delayTimer;
                             break;
-                        case 0x0A:
+                        case 0x0A://pauses emulator if key is pressed
+                            this.paused = true;
+                            this.keyboard.onNextKeyPress = function(key) {
+                                this.v[x] = key;
+                                this.paused =f AnalyserNode;
+                            }.bind(this);
                             break;
-                        case 0x15:
+                        case 0x15://sets delayTimer to x
+                            this.delayTimer = this.v[x];
                             break;
-                        case 0x18:
+                        case 0x18:// sets soundTimer to x
+                            this.soundTimer = this.v[x];
                             break;
-                        case 0x1E:
+                        case 0x1E://adds x to index
+                            this.i += this.v[x];
                             break;
-                        case 0x29:
+                        case 0x29://sets index to x
+                            this.i = this.v[x] * 5;
                             break;
-                        case 0x33:
+                        case 0x33://grabs hundreds tens and ones digit from x, stores them in i, i+1 i+2
+                            //Hundreds set to i
+                            this.memory[this.i] = parseInt(this.v[x] / 100);
+                            //Tens sent to i+1
+                            this.memory[this.i + 1] = parseInt((this.v[x] % 100) / 10);
+                            //Ones sent to i+2
+                            this.memory[this.i + 2] = parseInt(this.v[x] % 10);
                             break;
-                        case 0x55:
+                        case 0x55://V0 to Vx(x) is stored starting from index
+                            for(let rI = 0; rI <= x; rI++){
+                                this.memory[this.i + rI] = this.v[rI];
+                            }
                             break;
-                        case 0x65:
+                        case 0x65://Stores values starting from index in V0 to Vx
+                            for(let rI = 0; rI <= x; rI++){
+                                this.v[rI] = this.memory[this.i + rI];
+                            }
                             break;
                     }
             
