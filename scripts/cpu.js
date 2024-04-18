@@ -71,7 +71,7 @@ class CPU{
         }
 
         //Get rerquest to get ROM from roms folder
-        request.open('GET', 'roms/' + romName);
+        request.open('GET', './roms/' + romName);
         request.responseType = 'arraybuffer';
 
         //Send GET request

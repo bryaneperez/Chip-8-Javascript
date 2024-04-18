@@ -10,7 +10,7 @@ class Renderer {
         this.canvas.width = this.cols * this.scale;
         this.canvas.height = this.rows * this.scale;
 
-        this.display = new Array(this.colrs * this.rows);
+        this.display = new Array(this.cols * this.rows);
     }
 
     setPixel(x,y) {
