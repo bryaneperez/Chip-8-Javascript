@@ -1,4 +1,4 @@
-class CPU(){
+class CPU{
     constructor(renderer,keyboard,speaker){
         this.renderer = renderer;
         this.keyboard = keyboard;
@@ -265,7 +265,7 @@ class CPU(){
                             this.paused = true;
                             this.keyboard.onNextKeyPress = function(key) {
                                 this.v[x] = key;
-                                this.paused =f AnalyserNode;
+                                this.paused = false;
                             }.bind(this);
                             break;
                         case 0x15://sets delayTimer to x
